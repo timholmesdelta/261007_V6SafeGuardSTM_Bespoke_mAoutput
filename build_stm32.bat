@@ -1,0 +1,3 @@
+@echo off
+"C:\Program Files\Arduino IDE\Arduino IDE.exe" --export-binaries "C:\Users\Engineer\Documents\PlatformIO\Projects\260629-090729-genericSTM32F407VET6\src\251212_STM32_WITH_HardwareSERIAL_NOT_420.cpp"
+"C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe" -c port=USB1 -d "C:\Users\Engineer\Documents\PlatformIO\Projects\260629-090729-genericSTM32F407VET6\src\build\STMicroelectronics.stm32.GenF4\251212_STM32_WITH_HardwareSERIAL_NOT_420.ino.bin" 0x08000000

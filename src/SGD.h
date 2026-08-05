@@ -103,7 +103,7 @@ struct __attribute__((packed)) SettingsData {  // to send to STM (if too much da
   uint8_t sensorZone[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };                                // Zone offset
   uint16_t systemRedAlarmDelay = 5;                                                  // 2 bytes
   uint16_t systemAmbAlarmDelay = 1;                                                  // 2 bytes
-  uint16_t systemInitDelay = 1000;                                                   // 2 bytes
+  uint16_t systemInitDelay = 1000;                                                   // 2 bytes, milliseconds
   uint8_t checkSum = 6;                                                              // 1 Byte
 };
 

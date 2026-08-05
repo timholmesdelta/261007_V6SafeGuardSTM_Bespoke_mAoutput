@@ -37,7 +37,7 @@ const int sensorPins[8] = { PA1, PA2, PA3, PA4, PA5, PA6, PA7, PA0 };
 uint8_t AnalogueOutput = PA9; 
 
 HardwareSerial ESPSerial(PC11, PC10);  //Rx, TX pins from/to ESP32
-HardwareSerial SoftDbg(PA10, PA9); // RX, TX XXX ADDEDFORSERIALTEST (PA10 not used)
+// HardwareSerial SoftDbg(PA10, PA9); // RX, TX XXX ADDEDFORSERIALTEST (PA10 not used)
 
 GasDetection gasDetection;
 Custom_Timer timer;
@@ -141,9 +141,10 @@ void sendData() {
 void setup() {
   gasDetection.setupPinModes();
   ESPSerial.begin(115200);  // UART from/to ESP32
+  ESPSerial.setTimeout(10);
 
-  SoftDbg.begin(9600);  // XXX ADDEDFORSERIALTEST
-  SoftDbg.println("Soft serial debug"); // XXX ADDEDFORSERIALTEST
+  // SoftDbg.begin(9600);  // XXX ADDEDFORSERIALTEST
+  // SoftDbg.println("Soft serial debug"); // XXX ADDEDFORSERIALTEST
 
   timer.InitialiseStartTime = timer.StartTimer();
   storedSettingsValid = flashLoadSettings(&storedSettings);
@@ -163,7 +164,6 @@ void setup() {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loop() {
-  delay(100);  // 100ms delay to allow the ESP32 to process the data and not get overwhelmed
 
   // Sets Outputs for Red, Amber, Sounder ON / Healthy and Green OFF as a FAILSAFE STARTING POINT
   gasDetection.setFailsafeOutputs();
@@ -193,10 +193,7 @@ void loop() {
   // ANALOGUE SMOOTHING SOFTWARE END
 
 
-  // INITIALISATION TIMER
-  if (timer.TimerElapsedInitialise(timer.InitialiseDelay, timer.InitialiseStartTime)) {  // If the initalisation timer has elapsed
-    gasDetection.SystemStatBoolsArr[0] = 1;                                              // Flag that the system has initialised
-  }
+
 
 
   if (gasDetection.SystemStatBoolsArr[0] == 1) {  // if we are initialised
@@ -555,21 +552,22 @@ void loop() {
   char expectedPreHeader = 8;
   // char expectedheader = 6;  // 1 Byte
 
-  char wasteBinBuffer[50];                                  // Somewhere to dump unwanted data, ADJUST SIZE HERE LATER, WAS:same size as the expected data
+  char wasteBinBuffer[256];                                 // Somewhere to dump unwanted data; sized to safely fit readBytesUntil's scan length below
   millisSinceLastGoodData = millis() - millisLastGoodData;  // recalculate time since we last received good data from ESP
 
   // Find the start of the incoming Serial Stream
   if (ESPSerial.available()) {
     //ESPSerial.setTimeout(1000);
 
-    if (ESPSerial.available() >= 123) {                                  // if there is a full set of Data to read (plus 1 allows for the preheader which is not part of the receiving struct)
+    if (ESPSerial.available() >= (int)sizeof(RecievedSettingsData) + 1) {
+                                      // if there is a full set of Data to read (plus 1 allows for the preheader which is not part of the receiving struct)
                                                                          // if there is data from the ESP chip
-      ESPSerial.readBytesUntil(expectedPreHeader, wasteBinBuffer, 123);  // read and remove bytes from the incoming stream until we find (and remove) the pre-header value
+      ESPSerial.readBytesUntil(expectedPreHeader, wasteBinBuffer, sizeof(wasteBinBuffer));  // read and remove bytes from the incoming stream until we find (and remove) the pre-header value
 
       char headerCheckChar = ESPSerial.peek();
       /// CHANGE BACK TO 6
       if (headerCheckChar == 6) {  // Check if it is the value we expect in the header, if so we can:
-        ESPSerial.readBytes((char*)&recievedSettingsData, 123);
+        ESPSerial.readBytes((char*)&recievedSettingsData, sizeof(RecievedSettingsData));
 
         // memcpy(settingsData, &recievedSettingsData, sizeof(recievedSettingsData));
         memcpy(&settingsData, &recievedSettingsData, sizeof(recievedSettingsData));
@@ -590,11 +588,9 @@ void loop() {
         } else {
           commFailCounter++;  // mismatch, increment failures
           if (commFailCounter >= 5) {
-            digitalWrite(gasDetection.LED_PIN_2, !digitalRead(gasDetection.LED_PIN_2));
             // TODO: handle comms failure here (reset link, raise alarm, etc.)
           }
         }
-
 
         //if we still have data available, there was an excess of data, get rid of it
         while (ESPSerial.available() > 0) {
@@ -607,37 +603,37 @@ void loop() {
         // Startup settings verification: compare received settings against flash-stored baseline.
         // SystemFaultBoolsArr[6] is set after 3 consecutive mismatches on boot.
         // After startup, flash is kept current so the next boot compares to the latest known settings.
-        if (!startupCheckDone) {
-          if (!storedSettingsValid) {
-            // First ever boot — no stored settings yet; save this packet as the baseline
-            flashSaveSettings(&recievedSettingsData);
-            memcpy(&storedSettings, &recievedSettingsData, sizeof(storedSettings));
-            storedSettingsValid = true;
-            startupCheckDone    = true;
-          } else if (settingsMatch(&recievedSettingsData, &storedSettings)) {
-            settingsMismatchCount = 0;
-            startupCheckDone   = true;
-            settingsFaultActive = false;
-          } else {
-            settingsMismatchCount++;
-            if (settingsMismatchCount >= 3) {
-              startupCheckDone   = true;
-              settingsFaultActive = true;
-              // Update stored so next boot compares to the current (new) settings
-              flashSaveSettings(&recievedSettingsData);
-              memcpy(&storedSettings, &recievedSettingsData, sizeof(storedSettings));
-            }
-          }
-        } else if (!settingsMatch(&recievedSettingsData, &storedSettings)) {
-          // After startup: settings legitimately changed — keep flash current for next boot
-          flashSaveSettings(&recievedSettingsData);
-          memcpy(&storedSettings, &recievedSettingsData, sizeof(storedSettings));
-        }
+        // if (!startupCheckDone) {
+        //   if (!storedSettingsValid) {
+        //     // First ever boot — no stored settings yet; save this packet as the baseline
+        //     flashSaveSettings(&recievedSettingsData);
+        //     memcpy(&storedSettings, &recievedSettingsData, sizeof(storedSettings));
+        //     storedSettingsValid = true;
+        //     startupCheckDone    = true;
+        //   } else if (settingsMatch(&recievedSettingsData, &storedSettings)) {
+        //     settingsMismatchCount = 0;
+        //     startupCheckDone   = true;
+        //     settingsFaultActive = false;
+        //   } else {
+        //     settingsMismatchCount++;
+        //     if (settingsMismatchCount >= 3) {
+        //       startupCheckDone   = true;
+        //       settingsFaultActive = true;
+        //       // Update stored so next boot compares to the current (new) settings
+        //       flashSaveSettings(&recievedSettingsData);
+        //       memcpy(&storedSettings, &recievedSettingsData, sizeof(storedSettings));
+        //     }
+        //   }
+        // } else if (!settingsMatch(&recievedSettingsData, &storedSettings)) {
+        //   // After startup: settings legitimately changed — keep flash current for next boot
+        //   flashSaveSettings(&recievedSettingsData);
+        //   memcpy(&storedSettings, &recievedSettingsData, sizeof(storedSettings));
+        // }
       }
     }
   }
   
-  settingsFaultActive = true;
+  // settingsFaultActive = true;
 
   // COMMAND HANDLING:
 
@@ -660,5 +656,10 @@ void loop() {
     if (available > sizeof(transmitData)) {
       sendData();  // SEND DATA TO THE ESP
     }
+  }
+
+    // INITIALISATION TIMER
+  if (timer.TimerElapsedInitialise(settingsData.systemInitDelay * 10, timer.InitialiseStartTime)) {  // If the initalisation timer has elapsed (systemInitDelay is already in milliseconds)
+    gasDetection.SystemStatBoolsArr[0] = 1;                                              // Flag that the system has initialised
   }
 }
