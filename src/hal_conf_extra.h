@@ -3,3 +3,5 @@
 
 
 #define SERIAL_RX_BUFFER_SIZE 256
+#define HAL_IWDG_MODULE_ENABLED
+

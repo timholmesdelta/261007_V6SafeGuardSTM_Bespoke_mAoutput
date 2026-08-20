@@ -88,6 +88,7 @@ struct __attribute__((packed)) TransmitData {
   uint8_t SystemFaultBools;       // 4 bytes
   uint8_t CommandResponse;       // 4 bytes
   uint16_t checkSum;               // 1 Byte
+  uint16_t crc;                    // NEW — real CRC16 over [header .. checkSum), catches payload corruption
 };                                // Total: 44 bytes
 
 struct __attribute__((packed)) SettingsData {  // to send to STM (if too much data split into sensor settings and system settings)
@@ -104,7 +105,8 @@ struct __attribute__((packed)) SettingsData {  // to send to STM (if too much da
   uint16_t systemRedAlarmDelay = 5;                                                  // 2 bytes
   uint16_t systemAmbAlarmDelay = 1;                                                  // 2 bytes
   uint16_t systemInitDelay = 1000;                                                   // 2 bytes, milliseconds
-  uint8_t checkSum = 6;                                                              // 1 Byte
+  uint8_t checkSum = 6;
+  uint16_t crc = 0;                 // NEW — real CRC16 over the settings payload
 };
 
 struct __attribute__((packed)) RecievedSettingsData {  // to send to STM (if too much data split into sensor settings and system settings)
@@ -123,6 +125,7 @@ struct __attribute__((packed)) RecievedSettingsData {  // to send to STM (if too
   uint16_t systemAmbAlarmDelay;                                                  // 2 bytes
   uint16_t systemInitDelay;                                                   // 2 bytes
   uint8_t checkSum;                                                              // 1 Byte
+  uint16_t crc;                     // NEW — must be added in the same position as the ESP32 struct
 };
 
 struct __attribute__((packed)) IncomingData {
