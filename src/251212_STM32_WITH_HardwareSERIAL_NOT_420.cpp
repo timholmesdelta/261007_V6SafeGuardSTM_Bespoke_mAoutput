@@ -256,8 +256,8 @@ void setup()
     }
   }
 
-  // XXX COMMENTEDOUTFORSERIALDEBUG analogWriteResolution(10);                    // Set Analogue Output Resolution to 10 Bit, 0-1023
-  // XXX COMMENTEDOUTFORSERIALDEBUG analogWrite(gasDetection.AnalogueOutput, 0);  // Initialise the Analogue Output to zero as good practice
+  analogWriteResolution(10);                    // Set Analogue Output Resolution to 10 Bit, 0-1023
+  analogWrite(gasDetection.AnalogueOutput, 0);  // Initialise the Analogue Output to zero as good practice
 
 } // End of Setup
 
@@ -717,7 +717,7 @@ void loop()
   // ANALOGUE OUTPUT
   //  output nothing to begin with as a safety precaution
   //  The lower the output value, the less safe the state i.e. to show Green at the beacon requires a high signal of ~20mA, anything below 10 shows Red
-  //  XXX COMMENTEDOUTFORSERIALDEBUG analogWrite(gasDetection.AnalogueOutput, 0);
+  analogWrite(gasDetection.AnalogueOutput, 0);
 
   /* mA Levels:
   20 Only Green
@@ -736,7 +736,7 @@ void loop()
   if (digitalRead(gasDetection.RedOutput) && digitalRead(gasDetection.SounderOutput))
     PWMvalue = PWMvaluePerMa * 4; // Red with Sounder
 
-  // XXX COMMENTEDOUTFORSERIALDEBUG analogWrite(gasDetection.AnalogueOutput, PWMvalue);  // Send the value to the analogue output
+ analogWrite(gasDetection.AnalogueOutput, PWMvalue);  // Send the value to the analogue output
 
   // transmitData.checkSum = PWMvalue; // TEMPORARY PLACE TO TRANSMIT TO ESP FOR DEBUGGING
 

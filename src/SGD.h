@@ -50,7 +50,7 @@ public:
   uint8_t SounderOutputMonitorIP = PE15;
   uint8_t HealthyOutputMonitorIP = PE12;
 
-  // XXX COMMENTEDOUTFORSERIALDEBUG uint8_t AnalogueOutput = PA9; 
+  uint8_t AnalogueOutput = PA9; 
   
   // General Purpose digital IPs
 
