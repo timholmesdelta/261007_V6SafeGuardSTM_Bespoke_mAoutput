@@ -55,6 +55,9 @@ bool underRangeDetected = false;
 static unsigned long lastParamMemCheckTm = 0;
 const unsigned long ParamMemCheckInterval = 60000; // well inside the 24h requirement
 
+static unsigned long lastLedToggleTm = 0;
+const unsigned long LedToggleMinInterval = 250; // caps LED_PIN_1 to a visible heartbeat rate, no matter how fast valid packets arrive
+
 int checkSums[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int currnentChecksum = 0;
 static uint8_t commFailCounter = 0; // counts consecutive bad returns
@@ -92,6 +95,7 @@ static bool flashSaveSettings(const RecievedSettingsData *data)
     HAL_FLASH_Lock();
     return false;
   }
+  HAL_IWDG_Refresh(&hiwdg); // sector erase can take up to ~2s on its own, close to the IWDG window — feed it right after the slow part completes
   uint32_t magic = SETTINGS_MAGIC;
   for (int i = 0; i < 4; i++)
   {
@@ -238,6 +242,7 @@ void setup()
   }
 
   gasDetection.setupPinModes();
+
   ESPSerial.begin(115200); // UART from/to ESP32
   ESPSerial.setTimeout(10);
 
@@ -806,7 +811,11 @@ void loop()
         {
           ESPSerial.read();
         }
-        digitalWrite(gasDetection.LED_PIN_1, !digitalRead(gasDetection.LED_PIN_1));
+        if (found && crcOk && millis() - lastLedToggleTm >= LedToggleMinInterval)
+        {
+          lastLedToggleTm = millis();
+          digitalWrite(gasDetection.LED_PIN_1, !digitalRead(gasDetection.LED_PIN_1)); // heartbeat, not a raw packet-rate strobe
+        }
 
         millisLastGoodData = millis(); // Reset counter — tracks "a packet arrived", separate from "it was trustworthy"
 
