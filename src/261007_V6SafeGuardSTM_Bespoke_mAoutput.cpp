@@ -5,6 +5,7 @@
 #include <TimerSGD.h>
 #include "stm32f4xx_hal.h"
 #include "hal_conf_extra.h"
+#include "fw_version.h"
 #include "TestingCode.cpp"
 
 IWDG_HandleTypeDef hiwdg;
@@ -240,6 +241,9 @@ void setup()
   if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
   {
   }
+
+  // Forces FW_IDENT to be linked in; --gc-sections drops it otherwise.
+  { const char * volatile fwid = FW_IDENT; (void)fwid; }
 
   gasDetection.setupPinModes();
 
